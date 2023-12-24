@@ -23,7 +23,8 @@ foreach ($name in $secretNames) {
 
 # Create resource group and keyvault, network rule for your IP only
 az group create --name $group --location eastus
-az keyvault create --name $vault --resource-group $group --location eastus 
+az keyvault create --name $vault --resource-group $group --location eastus
+az keyvault update --name $vault --resource-group $group --default-action Deny --bypass None 
 $access = az keyvault network-rule add --name $vault --resource-group $group --ip-address $ipAddress
 
 # Add each secret to the key vault
