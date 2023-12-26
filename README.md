@@ -3,7 +3,7 @@ Reads in your secrets and deploys a function and key  vault linked with a manged
 
 
 ### Blog Post
-Code walk-through and stuff: https://dev.straylightsecurity.com/#18
+Code walk-through: https://dev.straylightsecurity.com/#18
 
 ![GitRDone Schematic](https://dev.straylightsecurity.com/assets/gitrdone/gitrdone1.png "GitRDone")
 
