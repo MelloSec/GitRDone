@@ -58,6 +58,9 @@ param(
     [switch]$forceCopy,
 
     [Parameter(ValueFromPipelineByPropertyName = $true)]
+    [switch]$DNS,
+
+    [Parameter(ValueFromPipelineByPropertyName = $true)]
     [bool]$s3enabled = $true
 
 )
@@ -157,7 +160,9 @@ if($az){
     $params = @{
     VAULTNAME = $VAULTNAME
     VAULTGROUP = $VAULTGROUP
-    FUNCTION = $FUNCTION 
+    FUNCTION = $FUNCTION
+    DOMAINNAME = $DOMAINNAME
+    DOMAINSUFFIX = $DOMAINSUFFIX 
     AZREGION = $AZREGION
     zipFilePath = ".\func.zip" # relative to 
     }

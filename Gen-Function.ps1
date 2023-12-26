@@ -1,9 +1,27 @@
 param (
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
     [string] $VAULTGROUP,
+
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
     [string] $VAULTNAME,
+
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
     [string] $FUNCTION,
+
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
     [string] $AZREGION,
-    [string] $zipFilePath = ".\func.zip"  # Path to your local ZIP file
+
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
+    [switch] $DNS,
+
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
+    [string] $DOMAINNAME,
+
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
+    [string] $DOMAINSUFFIX,
+
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
+    [string] $zipFilePath = ".\func.zip"  # Default Path to your local ZIP file
 )
 
 
@@ -78,7 +96,13 @@ Write-Output "Access rule"
 # Set an access rule to allow access to the Azure Function from a specific IP address
 az functionapp config access-restriction add --name $functionAppName --resource-group $resourceGroupName --rule-name allowip --action Allow --priority 150 --ip-address $ipAddress
 
-Write-Output "Depoying"
+Write-Output "Zip Deploying Function code"
 # Deploy your Azure Functions project from the zip file
 az functionapp deployment source config-zip --src func.zip --name $functionAppName --resource-group $resourceGroupName
 
+# Not working
+if($DNS){
+    Write-Output "Assigning Custom Domain Name $FUNCTION.$DOMAINNAME.$DOMAINSUFFIX"
+# Assign a custom domain to the Azure Function App
+az functionapp config hostname add --hostname $FUNCTION.$DOMAINNAME.$DOMAINSUFFIX --name $functionAppName --resource-group $resourceGroupName
+}
