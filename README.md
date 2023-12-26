@@ -1,6 +1,9 @@
 ## Key Vault and Redirector function
 Reads in your secrets and deploys a function and key  vault linked with a manged identity. The redirector pulls base64 encoded text files from a chose repo using a github reader-only token. DLLs for graboid go in a repo routed by /assets/ and the aux/appdomain are handled by requests to /adm/. Will ask for a public repo, good place to store your global status file or need something for a ruse.
 
+Code walk-through: https://dev.straylightsecurity.com/#18
+image: https://dev.straylightsecurity.com/assets/gitrdone/gitrdone1.png
+
 ### Deploy with Azure CLI
 
 ```powershell

@@ -46,11 +46,11 @@ namespace GitRDone
             KeyVaultSecret secretToken = await kvClient.GetSecretAsync("auxToken");
             string auxToken = secretToken.Value;
 
-            // Retrieve the GitHub name
+            // Retrieve the GitHub username
             KeyVaultSecret secretghUsername = await kvClient.GetSecretAsync("ghUsername");
             string ghUsername = secretghUsername.Value;
 
-            // Retrieve the second repository name, if applicable
+            // Retrieve the repo name
             KeyVaultSecret secretauxRepo = await kvClient.GetSecretAsync("auxRepo");
             string auxRepo = secretauxRepo.Value;
 
@@ -157,6 +157,40 @@ namespace GitRDone
             return (dllToken, ghUsername, dllRepo, auxRepo);
         }
 
+        [FunctionName("LoaderAssets")]
+        public static async Task<IActionResult> Run23(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "assets/{fileName}")] HttpRequest req,
+        string fileName,
+        ILogger log, ExecutionContext context)
+        {
+            await InitializeConfig(context);
+            string repoUrl = $"https://api.github.com/repos/{ghUsername}/{dllRepo}/contents/{fileName}.txt";
+
+            using (var newClient = new HttpClient())
+            {
+                newClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("AppName", "1.0"));
+                newClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", dllToken);
+                HttpResponseMessage response = await newClient.GetAsync(repoUrl);
+                if (response.IsSuccessStatusCode)
+                {
+                    string jsonResponse = await response.Content.ReadAsStringAsync();
+                    var contentObject = JsonConvert.DeserializeObject<dynamic>(jsonResponse);
+                    string encodedContent = contentObject.content;
+                    byte[] data = Convert.FromBase64String(encodedContent);
+                    string decodedContent = Encoding.UTF8.GetString(data);
+
+                    log.LogInformation($"File content: {decodedContent}");
+                    return new OkObjectResult(decodedContent);
+                }
+                else
+                {
+                    log.LogError($"Failed to retrieve file: {response.StatusCode}");
+                    return new StatusCodeResult((int)response.StatusCode);
+                }
+            }
+        }
+
+
         // Check dll Repo authentication
         [FunctionName("CheckRepo")]
         public static async Task<IActionResult> Run(
@@ -193,38 +227,7 @@ namespace GitRDone
             }
         }
 
-        [FunctionName("CheckAssets")]
-        public static async Task<IActionResult> Run23(
-[HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "assets/{fileName}")] HttpRequest req,
-string fileName,
-ILogger log, ExecutionContext context)
-        {
-            await InitializeConfig(context);
-            string repoUrl = $"https://api.github.com/repos/{ghUsername}/{dllRepo}/contents/{fileName}.txt";
 
-            using (var newClient = new HttpClient())
-            {
-                newClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("AppName", "1.0"));
-                newClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", dllToken);
-                HttpResponseMessage response = await newClient.GetAsync(repoUrl);
-                if (response.IsSuccessStatusCode)
-                {
-                    string jsonResponse = await response.Content.ReadAsStringAsync();
-                    var contentObject = JsonConvert.DeserializeObject<dynamic>(jsonResponse);
-                    string encodedContent = contentObject.content;
-                    byte[] data = Convert.FromBase64String(encodedContent);
-                    string decodedContent = Encoding.UTF8.GetString(data);
-
-                    log.LogInformation($"File content: {decodedContent}");
-                    return new OkObjectResult(decodedContent);
-                }
-                else
-                {
-                    log.LogError($"Failed to retrieve file: {response.StatusCode}");
-                    return new StatusCodeResult((int)response.StatusCode);
-                }
-            }
-        }
 
         [FunctionName("CheckStatus")]
         public static async Task<IActionResult> Run33(
@@ -299,77 +302,77 @@ ILogger log, ExecutionContext context)
             return (s.Length % 4 == 0) && Regex.IsMatch(s, @"^[a-zA-Z0-9\+/]*={0,3}$", RegexOptions.None);
         }
 
-        [FunctionName("DllAssets")]
-        public static async Task<IActionResult> RunDll(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "libraries/{fileName}")] HttpRequest req,
-        string fileName,
-        ILogger log)
-        {
-            log.LogInformation($"C# HTTP trigger function processed a request for file: {fileName}");
-            var githubUrl = $"https://api.github.com/repos/{ghUsername}/{dllRepo}/contents/{fileName}.dll";
+        // [FunctionName("DllAssets")]
+        // public static async Task<IActionResult> RunDll(
+        // [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "libraries/{fileName}")] HttpRequest req,
+        // string fileName,
+        // ILogger log)
+        // {
+        //     log.LogInformation($"C# HTTP trigger function processed a request for file: {fileName}");
+        //     var githubUrl = $"https://api.github.com/repos/{ghUsername}/{dllRepo}/contents/{fileName}.dll";
 
-            using (var client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("AppName", "1.0"));
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", dllToken);
+        //     using (var client = new HttpClient())
+        //     {
+        //         client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("AppName", "1.0"));
+        //         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", dllToken);
 
-                HttpResponseMessage response = await client.GetAsync(githubUrl);
-                if (response.IsSuccessStatusCode)
-                {
-                    string jsonResponse = await response.Content.ReadAsStringAsync();
-                    var contentObject = JsonConvert.DeserializeObject<dynamic>(jsonResponse);
-                    string encodedContent = contentObject.content;
-                    byte[] data = Convert.FromBase64String(encodedContent);
-                    string decodedContent = Encoding.UTF8.GetString(data);
+        //         HttpResponseMessage response = await client.GetAsync(githubUrl);
+        //         if (response.IsSuccessStatusCode)
+        //         {
+        //             string jsonResponse = await response.Content.ReadAsStringAsync();
+        //             var contentObject = JsonConvert.DeserializeObject<dynamic>(jsonResponse);
+        //             string encodedContent = contentObject.content;
+        //             byte[] data = Convert.FromBase64String(encodedContent);
+        //             string decodedContent = Encoding.UTF8.GetString(data);
 
-                    return new OkObjectResult(decodedContent);
-                }
-                else
-                {
-                    log.LogError($"Failed to retrieve file: {response.StatusCode}");
-                    return new StatusCodeResult((int)response.StatusCode);
-                }
-            }
-        }
+        //             return new OkObjectResult(decodedContent);
+        //         }
+        //         else
+        //         {
+        //             log.LogError($"Failed to retrieve file: {response.StatusCode}");
+        //             return new StatusCodeResult((int)response.StatusCode);
+        //         }
+        //     }
+        // }
 
 
 
-        // Application mime-type for Zips, example of referencing master branch. Legacy now, maybe still useful
+        // // Application mime-type for Zips, example of referencing master branch. Legacy now, maybe still useful
 
-        [FunctionName("ZipAssets")]
-        public static async Task<IActionResult> RunZip(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "zip/{fileName}")] HttpRequest req,
-            string fileName,
-            ILogger log)
-        {
-            log.LogInformation($"C# HTTP trigger function processed a request for file: {fileName}.zip");
+        // [FunctionName("ZipAssets")]
+        // public static async Task<IActionResult> RunZip(
+        //     [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "zip/{fileName}")] HttpRequest req,
+        //     string fileName,
+        //     ILogger log)
+        // {
+        //     log.LogInformation($"C# HTTP trigger function processed a request for file: {fileName}.zip");
 
-            // Using the GitHub API URL format
-            var githubUrl = $"https://api.github.com/repos/{ghUsername}/{auxRepo}/contents/{fileName}.zip?ref=master";
+        //     // Using the GitHub API URL format
+        //     var githubUrl = $"https://api.github.com/repos/{ghUsername}/{auxRepo}/contents/{fileName}.zip?ref=master";
 
-            using (var client = new HttpClient())
-            {
-                // Assuming dllToken is used for authorization
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", dllToken);
-                client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("YourAppName", "1.0"));
+        //     using (var client = new HttpClient())
+        //     {
+        //         // Assuming dllToken is used for authorization
+        //         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", dllToken);
+        //         client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("YourAppName", "1.0"));
 
-                HttpResponseMessage response = await client.GetAsync(githubUrl);
-                if (response.IsSuccessStatusCode)
-                {
-                    string jsonResponse = await response.Content.ReadAsStringAsync();
-                    var contentObject = JsonConvert.DeserializeObject<dynamic>(jsonResponse);
-                    string encodedContent = contentObject.content;
-                    byte[] decodedContent = Convert.FromBase64String(encodedContent);
+        //         HttpResponseMessage response = await client.GetAsync(githubUrl);
+        //         if (response.IsSuccessStatusCode)
+        //         {
+        //             string jsonResponse = await response.Content.ReadAsStringAsync();
+        //             var contentObject = JsonConvert.DeserializeObject<dynamic>(jsonResponse);
+        //             string encodedContent = contentObject.content;
+        //             byte[] decodedContent = Convert.FromBase64String(encodedContent);
 
-                    return new FileContentResult(decodedContent, "application/zip") { FileDownloadName = fileName + ".zip" };
-                }
-                else
-                {
-                    log.LogError($"Failed to retrieve file: {response.StatusCode}");
-                    return new NotFoundResult();
-                }
-            }
-        }
+        //             return new FileContentResult(decodedContent, "application/zip") { FileDownloadName = fileName + ".zip" };
+        //         }
+        //         else
+        //         {
+        //             log.LogError($"Failed to retrieve file: {response.StatusCode}");
+        //             return new NotFoundResult();
+        //         }
+        //     }
+        // }
 
 
 
@@ -382,43 +385,43 @@ ILogger log, ExecutionContext context)
 
         // Multi-Purpose redirector for DropD
 
-        [FunctionName("AppLibs")]
-        public static async Task<IActionResult> Run2(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "applibs/{fileName}")] HttpRequest req,
-            string fileName,
-            ILogger log, ExecutionContext context)
-        {
-            await InitializeConfig(context); // Ensure configuration is initialized
+        // [FunctionName("AppLibs")]
+        // public static async Task<IActionResult> Run2(
+        //     [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "applibs/{fileName}")] HttpRequest req,
+        //     string fileName,
+        //     ILogger log, ExecutionContext context)
+        // {
+        //     await InitializeConfig(context); // Ensure configuration is initialized
 
-            log.LogInformation($"C# HTTP trigger function processed a request for file: {fileName}");
+        //     log.LogInformation($"C# HTTP trigger function processed a request for file: {fileName}");
 
-            // Use the static variables initialized earlier
-            var githubUrl = $"https://api.github.com/repos/{ghUsername}/{dllRepo}/contents/{fileName}";
+        //     // Use the static variables initialized earlier
+        //     var githubUrl = $"https://api.github.com/repos/{ghUsername}/{dllRepo}/contents/{fileName}";
 
-            using (var newClient = new HttpClient())
-            {
-                newClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("AppName", "1.0"));
-                newClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", dllToken);
+        //     using (var newClient = new HttpClient())
+        //     {
+        //         newClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("AppName", "1.0"));
+        //         newClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", dllToken);
 
-                /*HttpResponseMessage response = await newClient.GetAsync(githubUrl);*/
-                HttpResponseMessage response = await newClient.GetAsync(githubUrl);
-                if (response.IsSuccessStatusCode)
-                {
-                    string jsonResponse = await response.Content.ReadAsStringAsync();
-                    var contentObject = JsonConvert.DeserializeObject<dynamic>(jsonResponse);
-                    string encodedContent = contentObject.content;
-                    byte[] data = Convert.FromBase64String(encodedContent);
-                    string decodedContent = Encoding.UTF8.GetString(data);
+        //         /*HttpResponseMessage response = await newClient.GetAsync(githubUrl);*/
+        //         HttpResponseMessage response = await newClient.GetAsync(githubUrl);
+        //         if (response.IsSuccessStatusCode)
+        //         {
+        //             string jsonResponse = await response.Content.ReadAsStringAsync();
+        //             var contentObject = JsonConvert.DeserializeObject<dynamic>(jsonResponse);
+        //             string encodedContent = contentObject.content;
+        //             byte[] data = Convert.FromBase64String(encodedContent);
+        //             string decodedContent = Encoding.UTF8.GetString(data);
 
-                    return new OkObjectResult(decodedContent);
-                }
-                else
-                {
-                    log.LogError($"Failed to retrieve file: {response.StatusCode}");
-                    return new StatusCodeResult((int)response.StatusCode);
-                }
-            }
-        }
+        //             return new OkObjectResult(decodedContent);
+        //         }
+        //         else
+        //         {
+        //             log.LogError($"Failed to retrieve file: {response.StatusCode}");
+        //             return new StatusCodeResult((int)response.StatusCode);
+        //         }
+        //     }
+        // }
     }
 }
 
